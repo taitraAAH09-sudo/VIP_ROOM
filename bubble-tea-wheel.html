@@ -192,7 +192,7 @@
   /* ---- wheel area ---- */
   .wheel-stage{
     position:relative;
-    width:min(78vw, 340px);
+    width:min(64vw, 448px);
     margin:0 auto 22px;
     display:flex;
     flex-direction:column;
@@ -201,9 +201,9 @@
 
   .straw{
     position:relative;
-    width:22px;
-    height:46px;
-    margin-bottom:-6px;
+    width:25px;
+    height:55px;
+    margin-bottom:-7px;
     z-index:5;
     background: repeating-linear-gradient(
       -35deg,
@@ -216,13 +216,13 @@
   .straw::after{
     content:"";
     position:absolute;
-    bottom:-10px;
+    bottom:-12px;
     left:50%;
     transform:translateX(-50%);
     width:0;height:0;
-    border-left:11px solid transparent;
-    border-right:11px solid transparent;
-    border-top:12px solid var(--hibiscus);
+    border-left:13px solid transparent;
+    border-right:13px solid transparent;
+    border-top:13px solid var(--hibiscus);
     filter:drop-shadow(0 2px 2px rgba(58,38,32,0.25));
   }
 
@@ -502,7 +502,7 @@
   <div class="wheel-stage">
     <div class="straw"></div>
     <div class="wheel-wrap">
-      <canvas id="wheel" width="640" height="640"></canvas>
+      <canvas id="wheel" width="900" height="900"></canvas>
       <div class="hub"></div>
     </div>
   </div>
@@ -520,7 +520,7 @@
   <details class="editor">
     <summary>整份清單(貼上/整理用)</summary>
     <div class="editor-body">
-      <p>一行一家店，改成你附近 Uber Eats 有開的店家即可，也可以在上面用標籤快速新增</p>
+      <p>一行一家店，改成你附近 Uber Eats 有開的店家即可，也可以在上面用標籤快速新增。「乖乖喝水」是轉盤固定的選項，不算在這份清單裡，也無法刪除</p>
       <textarea id="listInput"></textarea>
       <div class="editor-actions">
         <button class="btn-solid" id="applyBtn">更新轉盤</button>
@@ -559,6 +559,18 @@
   ];
 
   const PALETTE = ["#C17817","#8B6BA8","#7A8B4F","#B23A48","#D9A441","#4A2C2A"];
+
+  // 「乖乖喝水」是轉盤上固定存在的選項：不放進可編輯的 drinks 清單，
+  // 所以不會出現在標籤/整份清單編輯區，也就無法被刪除。
+  // 尺寸為其他店家選項的一半（權重 0.5 對 1）。
+  const WATER_LABEL = '乖乖喝水';
+  const WATER_WEIGHT = 0.5;
+  const WATER_COLOR = '#4E7DA6';
+
+  function getSegments(){
+    return drinks.map(name => ({ name, weight: 1 }))
+      .concat([{ name: WATER_LABEL, weight: WATER_WEIGHT }]);
+  }
 
   const canvas = document.getElementById('wheel');
   const ctx = canvas.getContext('2d');
@@ -614,6 +626,7 @@
 
   // 任何「編輯清單」的動作都走這裡：有雲端就寫回雲端（畫面靠監聽器更新），沒有就直接更新本機
   function commitDrinks(newDrinks){
+    newDrinks = newDrinks.filter(d => d !== WATER_LABEL);
     if(newDrinks.length < 2){
       alert('至少要留 2 個選項才能轉喔');
       return;
@@ -692,15 +705,18 @@
     const size = canvas.width;
     const cx = size/2, cy = size/2;
     const radius = size/2 - 6;
+    const segments = getSegments();
+    const totalWeight = segments.reduce((s,seg) => s+seg.weight, 0);
     const n = drinks.length;
-    const segAngle = (Math.PI*2)/n;
 
     ctx.clearRect(0,0,size,size);
 
-    for(let i=0;i<n;i++){
-      const start = i*segAngle;
-      const end = start+segAngle;
-      const color = PALETTE[i % PALETTE.length];
+    let start = 0;
+    segments.forEach((seg, i) => {
+      const segAngle = (seg.weight/totalWeight) * Math.PI*2;
+      const end = start + segAngle;
+      const isWater = seg.name === WATER_LABEL;
+      const color = isWater ? WATER_COLOR : PALETTE[i % PALETTE.length];
 
       ctx.beginPath();
       ctx.moveTo(cx,cy);
@@ -714,7 +730,8 @@
 
       const mid = start + segAngle/2;
       let fontSize = n > 12 ? 18 : n > 8 ? 22 : 26;
-      const label = drinks[i];
+      if(isWater) fontSize = Math.round(fontSize*0.62);
+      const label = seg.name;
 
       ctx.save();
       ctx.translate(cx,cy);
@@ -733,18 +750,26 @@
       ctx.shadowColor = "rgba(0,0,0,0.35)";
       ctx.shadowBlur = 4;
 
-      const maxWidth = radius*0.95;
-      while(ctx.measureText(label).width > maxWidth && fontSize > 10){
+      const maxWidth = Math.max(segAngle * radius * 0.62 * 0.85, radius*0.16);
+      while(ctx.measureText(label).width > maxWidth && fontSize > 8){
         fontSize -= 1;
         ctx.font = `700 ${fontSize}px 'Noto Sans TC', sans-serif`;
       }
       ctx.fillText(label, 0, 0);
       ctx.restore();
-    }
+
+      start = end;
+    });
   }
 
-  function pickIndex(){
-    return Math.floor(Math.random()*drinks.length);
+  function pickIndex(segments){
+    const totalWeight = segments.reduce((s,seg) => s+seg.weight, 0);
+    let r = Math.random()*totalWeight;
+    for(let i=0;i<segments.length;i++){
+      r -= segments[i].weight;
+      if(r <= 0) return i;
+    }
+    return segments.length-1;
   }
 
   function spin(){
@@ -753,10 +778,16 @@
     spinBtn.disabled = true;
     resultBox.classList.remove('show');
 
-    const n = drinks.length;
-    const segAngleDeg = 360/n;
-    const chosenIndex = pickIndex();
-    const midAngleDeg = chosenIndex*segAngleDeg + segAngleDeg/2;
+    const segments = getSegments();
+    const totalWeight = segments.reduce((s,seg) => s+seg.weight, 0);
+    const chosenIndex = pickIndex(segments);
+
+    let cumulativeDeg = 0;
+    for(let i=0;i<chosenIndex;i++){
+      cumulativeDeg += (segments[i].weight/totalWeight) * 360;
+    }
+    const segAngleDeg = (segments[chosenIndex].weight/totalWeight) * 360;
+    const midAngleDeg = cumulativeDeg + segAngleDeg/2;
 
     const jitter = (Math.random()-0.5) * (segAngleDeg*0.6);
     const targetMid = midAngleDeg + jitter;
@@ -778,7 +809,7 @@
       canvas.removeEventListener('transitionend', handleEnd);
       spinning = false;
       spinBtn.disabled = false;
-      drinkNameEl.textContent = drinks[chosenIndex];
+      drinkNameEl.textContent = segments[chosenIndex].name;
       resultBox.classList.add('show');
 
       if(pendingRemoteDrinks){
@@ -812,7 +843,7 @@
 
   function openInUberEats(){
     const name = drinkNameEl.textContent;
-    if(!name || name === '—') return;
+    if(!name || name === '—' || name === WATER_LABEL) return;
     const url = 'https://www.ubereats.com/search?q=' + encodeURIComponent(name);
     window.open(url, '_blank', 'noopener');
   }
