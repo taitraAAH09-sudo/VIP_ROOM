@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>今天喝什麼 — 手搖轉盤</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FAF3E7;
+    --cream-2:#F2E6D3;
+    --ink:#3A2620;
+    --caramel:#C17817;
+    --taro:#8B6BA8;
+    --matcha:#7A8B4F;
+    --hibiscus:#B23A48;
+    --milktea:#D9A441;
+    --brew:#4A2C2A;
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{
+    margin:0;
+    min-height:100%;
+    background:var(--cream);
+    font-family:'Noto Sans TC', sans-serif;
+    color:var(--ink);
+  }
+
+  body{
+    position:relative;
+    overflow-x:hidden;
+    background-image:
+      radial-gradient(circle at 8% 12%, rgba(74,44,42,0.06) 0 5px, transparent 6px),
+      radial-gradient(circle at 92% 20%, rgba(74,44,42,0.06) 0 6px, transparent 7px),
+      radial-gradient(circle at 20% 85%, rgba(74,44,42,0.05) 0 7px, transparent 8px),
+      radial-gradient(circle at 80% 90%, rgba(74,44,42,0.06) 0 5px, transparent 6px),
+      radial-gradient(circle at 50% 50%, rgba(74,44,42,0.03) 0 4px, transparent 5px);
+    background-size: 100% 100%;
+    display:flex;
+    justify-content:center;
+    padding:32px 16px 64px;
+  }
+
+  /* ---- background critters (original "boba sprites", not any existing IP) ---- */
+  .critters{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+    overflow:hidden;
+  }
+  .critter{
+    position:absolute;
+    filter:drop-shadow(0 6px 8px rgba(58,38,32,0.15));
+    animation: bob 4.5s ease-in-out infinite;
+  }
+  .critter.c1{ top:6%; left:-18px; width:78px; animation-duration:5.2s; }
+  .critter.c2{ top:14%; right:-22px; width:70px; animation-duration:4.6s; animation-delay:.4s; }
+  .critter.c3{ bottom:8%; left:-20px; width:86px; animation-duration:5.8s; animation-delay:.2s; }
+  .critter.c4{ bottom:4%; right:-16px; width:66px; animation-duration:4.9s; animation-delay:.7s; }
+  .critter.c5{ top:46%; left:-26px; width:56px; opacity:.85; animation-duration:5.4s; animation-delay:1s; }
+
+  @keyframes bob{
+    0%,100%{ transform:translateY(0) rotate(-2deg); }
+    50%{ transform:translateY(-10px) rotate(2deg); }
+  }
+
+  .page{
+    position:relative;
+    z-index:1;
+    width:100%;
+    max-width:460px;
+  }
+
+  header{
+    text-align:center;
+    margin-bottom:8px;
+  }
+
+  .eyebrow{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:13px;
+    letter-spacing:0.16em;
+    color:var(--caramel);
+    text-transform:uppercase;
+  }
+
+  h1{
+    font-size:clamp(30px, 8vw, 40px);
+    font-weight:900;
+    margin:6px 0 4px;
+    line-height:1.15;
+  }
+
+  .sub{
+    font-size:14.5px;
+    color:#6B564D;
+    margin:0 0 8px;
+  }
+
+  .sync-status{
+    display:inline-flex;
+    align-items:center;
+    gap:5px;
+    font-size:11.5px;
+    color:#8a7166;
+    margin:0 0 18px;
+    font-family:'Baloo 2', sans-serif;
+    font-weight:500;
+  }
+  .sync-dot{
+    width:7px;height:7px;
+    border-radius:50%;
+    background:#c9bcae;
+  }
+  .sync-status.ok .sync-dot{ background:var(--matcha); }
+  .sync-status.warn .sync-dot{ background:var(--hibiscus); }
+
+  /* ---- quick add tags ---- */
+  .quickadd{
+    max-width:360px;
+    margin:0 auto 22px;
+  }
+  .chips{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    justify-content:center;
+    margin-bottom:10px;
+    min-height:0;
+  }
+  .chip{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    background:var(--cream-2);
+    border:1.5px solid rgba(74,44,42,0.18);
+    border-radius:999px;
+    padding:5px 8px 5px 14px;
+    font-size:13px;
+    font-weight:500;
+    color:var(--brew);
+  }
+  .chip button{
+    border:none;
+    background:rgba(74,44,42,0.12);
+    color:var(--brew);
+    width:18px;height:18px;
+    border-radius:50%;
+    font-size:12px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+  }
+  .chip button:hover{ background:var(--hibiscus); color:var(--cream); }
+
+  .addrow{
+    display:flex;
+    gap:8px;
+  }
+  .addrow input{
+    flex:1;
+    font-family:'Noto Sans TC', sans-serif;
+    font-size:14px;
+    padding:10px 14px;
+    border-radius:999px;
+    border:1.5px solid rgba(74,44,42,0.2);
+    background:#fff;
+    color:var(--ink);
+  }
+  .addrow input:focus{ outline:2px solid var(--caramel); outline-offset:1px; }
+  .addrow button{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size:18px;
+    width:42px;
+    border-radius:50%;
+    border:none;
+    background:var(--matcha);
+    color:var(--cream);
+    cursor:pointer;
+    flex-shrink:0;
+  }
+
+  /* ---- wheel area ---- */
+  .wheel-stage{
+    position:relative;
+    width:min(78vw, 340px);
+    margin:0 auto 22px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+  }
+
+  .straw{
+    position:relative;
+    width:22px;
+    height:46px;
+    margin-bottom:-6px;
+    z-index:5;
+    background: repeating-linear-gradient(
+      -35deg,
+      var(--hibiscus) 0px, var(--hibiscus) 6px,
+      var(--cream) 6px, var(--cream) 11px
+    );
+    border-radius:6px 6px 2px 2px;
+    box-shadow: 0 3px 6px rgba(58,38,32,0.25);
+  }
+  .straw::after{
+    content:"";
+    position:absolute;
+    bottom:-10px;
+    left:50%;
+    transform:translateX(-50%);
+    width:0;height:0;
+    border-left:11px solid transparent;
+    border-right:11px solid transparent;
+    border-top:12px solid var(--hibiscus);
+    filter:drop-shadow(0 2px 2px rgba(58,38,32,0.25));
+  }
+
+  .wheel-wrap{
+    position:relative;
+    width:100%;
+    aspect-ratio:1/1;
+    border-radius:50%;
+    padding:10px;
+    background: linear-gradient(145deg, var(--brew), #2f1c19);
+    box-shadow:
+      0 18px 30px -10px rgba(58,38,32,0.45),
+      inset 0 2px 4px rgba(255,255,255,0.15);
+  }
+
+  canvas{
+    display:block;
+    width:100%;
+    height:100%;
+    border-radius:50%;
+    transform: rotate(0deg);
+  }
+
+  .hub{
+    position:absolute;
+    top:50%;left:50%;
+    width:19%;
+    height:19%;
+    transform:translate(-50%,-50%);
+    background: radial-gradient(circle at 35% 30%, #fff8ec, var(--milktea) 70%);
+    border-radius:50%;
+    border:3px solid var(--cream);
+    box-shadow:0 3px 8px rgba(58,38,32,0.35);
+    z-index:4;
+  }
+
+  .spin-btn{
+    margin-top:22px;
+    font-family:'Baloo 2', sans-serif;
+    font-weight:800;
+    font-size:19px;
+    letter-spacing:0.03em;
+    color:var(--cream);
+    background: linear-gradient(180deg, var(--hibiscus), #8f2735);
+    border:none;
+    border-radius:999px;
+    padding:14px 46px;
+    cursor:pointer;
+    box-shadow: 0 8px 0 #6f1c27, 0 12px 18px rgba(111,28,39,0.35);
+    transition: transform 0.08s ease;
+  }
+  .spin-btn:active{
+    transform: translateY(6px);
+    box-shadow: 0 2px 0 #6f1c27, 0 6px 10px rgba(111,28,39,0.3);
+  }
+  .spin-btn:disabled{
+    opacity:0.55;
+    cursor:not-allowed;
+    box-shadow: 0 8px 0 #6f1c27, 0 12px 18px rgba(111,28,39,0.2);
+  }
+
+  /* ---- result ---- */
+  .result{
+    margin:26px auto 0;
+    max-width:340px;
+    text-align:center;
+    background: var(--cream-2);
+    border:2px dashed rgba(74,44,42,0.25);
+    border-radius:18px;
+    padding:18px 20px;
+    opacity:0;
+    transform:translateY(8px) scale(0.98);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    cursor:pointer;
+  }
+  .result.show{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+  .result.show:active{
+    transform:translateY(0) scale(0.97);
+  }
+  .result .label{
+    font-size:12.5px;
+    letter-spacing:0.14em;
+    color:#8a7166;
+    text-transform:uppercase;
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+  }
+  .result .drink{
+    font-size:28px;
+    font-weight:900;
+    margin:4px 0 2px;
+    color:var(--brew);
+  }
+  .result .hint{
+    font-size:13px;
+    color:#8a7166;
+  }
+
+  /* ---- editor ---- */
+  details.editor{
+    margin:34px auto 0;
+    max-width:400px;
+    background:rgba(255,255,255,0.5);
+    border-radius:14px;
+    padding:4px 18px 4px;
+    border:1px solid rgba(74,44,42,0.12);
+  }
+  details.editor summary{
+    cursor:pointer;
+    padding:14px 0;
+    font-weight:700;
+    font-size:14.5px;
+    color:var(--brew);
+    list-style:none;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  details.editor summary::-webkit-details-marker{ display:none; }
+  details.editor summary::after{
+    content:"編輯";
+    font-family:'Baloo 2', sans-serif;
+    font-size:12px;
+    color:var(--caramel);
+    letter-spacing:0.05em;
+  }
+  details.editor[open] summary::after{ content:"收合"; }
+
+  .editor-body{ padding:0 0 18px; }
+  .editor-body p{
+    font-size:12.5px;
+    color:#8a7166;
+    margin:0 0 10px;
+  }
+  textarea{
+    width:100%;
+    min-height:150px;
+    resize:vertical;
+    font-family:'Noto Sans TC', sans-serif;
+    font-size:14px;
+    line-height:1.7;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid rgba(74,44,42,0.2);
+    background:var(--cream);
+    color:var(--ink);
+  }
+  textarea:focus{ outline:2px solid var(--caramel); outline-offset:1px; }
+
+  .editor-actions{
+    display:flex;
+    gap:10px;
+    margin-top:12px;
+  }
+  .btn-ghost{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:13.5px;
+    padding:9px 16px;
+    border-radius:999px;
+    border:1.5px solid var(--brew);
+    background:transparent;
+    color:var(--brew);
+    cursor:pointer;
+  }
+  .btn-solid{
+    font-family:'Baloo 2', sans-serif;
+    font-weight:700;
+    font-size:13.5px;
+    padding:9px 18px;
+    border-radius:999px;
+    border:none;
+    background:var(--matcha);
+    color:var(--cream);
+    cursor:pointer;
+  }
+
+  footer{
+    text-align:center;
+    margin-top:30px;
+    font-size:11.5px;
+    color:#a08d80;
+    line-height:1.7;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    canvas{ transition:none !important; }
+    .spin-btn{ transition:none; }
+    .critter{ animation:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="critters" aria-hidden="true">
+  <svg class="critter c1" viewBox="0 0 100 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 6C46 14 44 20 50 24C56 20 54 14 50 6Z" fill="#7A8B4F"/>
+    <ellipse cx="50" cy="62" rx="34" ry="38" fill="#C17817"/>
+    <circle cx="39" cy="56" r="6" fill="#FAF3E7"/>
+    <circle cx="61" cy="56" r="6" fill="#FAF3E7"/>
+    <circle cx="39" cy="57" r="3" fill="#3A2620"/>
+    <circle cx="61" cy="57" r="3" fill="#3A2620"/>
+    <path d="M38 74 Q50 82 62 74" stroke="#3A2620" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <ellipse cx="34" cy="100" rx="7" ry="9" fill="#C17817"/>
+    <ellipse cx="66" cy="100" rx="7" ry="9" fill="#C17817"/>
+  </svg>
+
+  <svg class="critter c2" viewBox="0 0 100 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 6C44 12 41 20 50 26C59 20 56 12 50 6Z" fill="#8B6BA8"/>
+    <ellipse cx="50" cy="62" rx="34" ry="38" fill="#D9A441"/>
+    <circle cx="39" cy="56" r="6" fill="#FAF3E7"/>
+    <circle cx="61" cy="56" r="6" fill="#FAF3E7"/>
+    <circle cx="40" cy="57" r="3" fill="#3A2620"/>
+    <circle cx="60" cy="57" r="3" fill="#3A2620"/>
+    <circle cx="50" cy="78" r="4.5" fill="#3A2620"/>
+    <ellipse cx="34" cy="100" rx="7" ry="9" fill="#D9A441"/>
+    <ellipse cx="66" cy="100" rx="7" ry="9" fill="#D9A441"/>
+  </svg>
+
+  <svg class="critter c3" viewBox="0 0 100 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 6C55 13 58 20 50 25C42 20 45 13 50 6Z" fill="#B23A48"/>
+    <ellipse cx="50" cy="62" rx="34" ry="38" fill="#4A2C2A"/>
+    <circle cx="39" cy="56" r="6" fill="#FAF3E7"/>
+    <circle cx="61" cy="56" r="6" fill="#FAF3E7"/>
+    <circle cx="39" cy="57" r="3" fill="#3A2620"/>
+    <circle cx="61" cy="57" r="3" fill="#3A2620"/>
+    <path d="M38 76 Q50 70 62 76" stroke="#FAF3E7" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <ellipse cx="34" cy="100" rx="7" ry="9" fill="#4A2C2A"/>
+    <ellipse cx="66" cy="100" rx="7" ry="9" fill="#4A2C2A"/>
+  </svg>
+
+  <svg class="critter c4" viewBox="0 0 100 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 6C45 14 43 21 50 26C57 21 55 14 50 6Z" fill="#7A8B4F"/>
+    <ellipse cx="50" cy="62" rx="34" ry="38" fill="#8B6BA8"/>
+    <circle cx="39" cy="56" r="6" fill="#FAF3E7"/>
+    <circle cx="61" cy="56" r="6" fill="#FAF3E7"/>
+    <circle cx="40" cy="57" r="3" fill="#3A2620"/>
+    <circle cx="60" cy="57" r="3" fill="#3A2620"/>
+    <path d="M38 74 Q50 82 62 74" stroke="#3A2620" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <ellipse cx="34" cy="100" rx="7" ry="9" fill="#8B6BA8"/>
+    <ellipse cx="66" cy="100" rx="7" ry="9" fill="#8B6BA8"/>
+  </svg>
+
+  <svg class="critter c5" viewBox="0 0 100 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M50 6C46 14 44 20 50 24C56 20 54 14 50 6Z" fill="#D9A441"/>
+    <ellipse cx="50" cy="62" rx="34" ry="38" fill="#7A8B4F"/>
+    <circle cx="39" cy="56" r="6" fill="#FAF3E7"/>
+    <circle cx="61" cy="56" r="6" fill="#FAF3E7"/>
+    <circle cx="39" cy="57" r="3" fill="#3A2620"/>
+    <circle cx="61" cy="57" r="3" fill="#3A2620"/>
+    <circle cx="50" cy="78" r="4.5" fill="#3A2620"/>
+    <ellipse cx="34" cy="100" rx="7" ry="9" fill="#7A8B4F"/>
+    <ellipse cx="66" cy="100" rx="7" ry="9" fill="#7A8B4F"/>
+  </svg>
+</div>
+
+<div class="page">
+
+  <header>
+    <div class="eyebrow">Uber Eats 手搖限定</div>
+    <h1>今天喝什麼？</h1>
+    <p class="sub">選擇困難免煩惱，轉一下，Uber Eats 點得到的都算數</p>
+    <div class="sync-status" id="syncStatus"><span class="sync-dot"></span><span id="syncStatusText">連線中…</span></div>
+  </header>
+
+  <div class="quickadd">
+    <div class="chips" id="chips"></div>
+    <div class="addrow">
+      <input type="text" id="tagInput" placeholder="輸入店名，按 Enter 新增" maxlength="20">
+      <button id="tagAddBtn" aria-label="新增店家">＋</button>
+    </div>
+  </div>
+
+  <div class="wheel-stage">
+    <div class="straw"></div>
+    <div class="wheel-wrap">
+      <canvas id="wheel" width="640" height="640"></canvas>
+      <div class="hub"></div>
+    </div>
+  </div>
+
+  <div style="text-align:center;">
+    <button class="spin-btn" id="spinBtn">開轉！</button>
+  </div>
+
+  <div class="result" id="result" role="button" tabindex="0" aria-label="在 Uber Eats 搜尋這家店">
+    <div class="label">今天就決定是你了</div>
+    <div class="drink" id="drinkName">—</div>
+    <div class="hint">👆 點卡片，直接在 Uber Eats 搜尋</div>
+  </div>
+
+  <details class="editor">
+    <summary>整份清單(貼上/整理用)</summary>
+    <div class="editor-body">
+      <p>一行一家店，改成你附近 Uber Eats 有開的店家即可，也可以在上面用標籤快速新增</p>
+      <textarea id="listInput"></textarea>
+      <div class="editor-actions">
+        <button class="btn-solid" id="applyBtn">更新轉盤</button>
+        <button class="btn-ghost" id="resetBtn">恢復預設</button>
+      </div>
+    </div>
+  </details>
+
+  <footer>
+    店家清單透過雲端同步，大家看到的都是同一份<br>
+    但每個人轉出來的結果只有自己看得到，互不影響
+  </footer>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+  // ====== Firebase 設定 ======
+  // 到 https://console.firebase.google.com 建一個新專案（建議跟其他工具分開，方便管理配額）
+  // 開啟 Realtime Database，把下面幾個值換成你自己專案的設定即可
+  const firebaseConfig = {
+    apiKey: "AIzaSyDuRoXvvvQms5fbYed-9qsnAMO8mcd8RKU",
+    authDomain: "newtest-b562b.firebaseapp.com",
+    databaseURL: "https://newtest-b562b-default-rtdb.firebaseio.com",
+    projectId: "newtest-b562b",
+    storageBucket: "newtest-b562b.firebasestorage.app",
+    messagingSenderId: "406317877228",
+    appId: "1:406317877228:web:322f741d0dc09cf88d62c9"
+  };
+  const DRINKS_PATH = "drinkList"; // 存放清單的路徑
+
+  const DEFAULT_DRINKS = [
+    "50嵐","可不可熟成紅茶","迷客夏","麻古茶坊",
+    "大苑子","CoCo都可","清心福全","龜記",
+    "一沐日","得正紅茶"
+  ];
+
+  const PALETTE = ["#C17817","#8B6BA8","#7A8B4F","#B23A48","#D9A441","#4A2C2A"];
+
+  const canvas = document.getElementById('wheel');
+  const ctx = canvas.getContext('2d');
+  const spinBtn = document.getElementById('spinBtn');
+  const resultBox = document.getElementById('result');
+  const drinkNameEl = document.getElementById('drinkName');
+  const listInput = document.getElementById('listInput');
+  const applyBtn = document.getElementById('applyBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const chipsEl = document.getElementById('chips');
+  const tagInput = document.getElementById('tagInput');
+  const tagAddBtn = document.getElementById('tagAddBtn');
+
+  let drinks = [...DEFAULT_DRINKS];
+  let currentRotation = 0;
+  let spinning = false;
+  let pendingRemoteDrinks = null;
+
+  let useFirebase = false;
+  let listRef = null;
+  const syncStatusEl = document.getElementById('syncStatus');
+  const syncStatusText = document.getElementById('syncStatusText');
+
+  function setSyncStatus(state, text){
+    syncStatusEl.className = 'sync-status ' + state;
+    syncStatusText.textContent = text;
+  }
+
+  function syncTextarea(){
+    listInput.value = drinks.join("\n");
+  }
+
+  // 套用清單並重畫轉盤（不管清單來源是本機還是雲端都會經過這裡）
+  function renderDrinks(newDrinks){
+    drinks = newDrinks;
+    syncTextarea();
+    renderChips();
+    currentRotation = 0;
+    canvas.style.transition = 'none';
+    canvas.style.transform = 'rotate(0deg)';
+    resultBox.classList.remove('show');
+    drawWheel();
+  }
+
+  // 收到雲端更新時呼叫；若正在轉，先排隊，等這輪轉完再套用，避免畫面跳掉
+  function applyRemoteDrinks(newDrinks){
+    if(spinning){
+      pendingRemoteDrinks = newDrinks;
+      return;
+    }
+    renderDrinks(newDrinks);
+  }
+
+  // 任何「編輯清單」的動作都走這裡：有雲端就寫回雲端（畫面靠監聽器更新），沒有就直接更新本機
+  function commitDrinks(newDrinks){
+    if(newDrinks.length < 2){
+      alert('至少要留 2 個選項才能轉喔');
+      return;
+    }
+    if(useFirebase && listRef){
+      listRef.set(newDrinks).catch(err => {
+        console.error('寫入 Firebase 失敗', err);
+        setSyncStatus('warn', '同步失敗，稍後會自動重試');
+      });
+    } else {
+      renderDrinks(newDrinks);
+    }
+  }
+
+  function initFirebase(){
+    if(firebaseConfig.apiKey === "YOUR_API_KEY"){
+      setSyncStatus('warn', '尚未設定雲端，僅本機使用');
+      renderDrinks([...DEFAULT_DRINKS]);
+      return;
+    }
+    try{
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.database();
+      listRef = db.ref(DRINKS_PATH);
+      useFirebase = true;
+
+      listRef.on('value', snapshot => {
+        const val = snapshot.val();
+        if(Array.isArray(val) && val.length >= 2){
+          setSyncStatus('ok', '清單已同步');
+          applyRemoteDrinks(val);
+        } else {
+          // 雲端還沒有清單，用預設值種一份
+          listRef.set(DEFAULT_DRINKS);
+        }
+      }, err => {
+        console.error('Firebase 連線失敗，改用本機清單', err);
+        useFirebase = false;
+        setSyncStatus('warn', '連不上雲端，改用本機清單');
+        renderDrinks([...DEFAULT_DRINKS]);
+      });
+    } catch(err){
+      console.error('Firebase 初始化失敗，改用本機清單', err);
+      useFirebase = false;
+      setSyncStatus('warn', '連不上雲端，改用本機清單');
+      renderDrinks([...DEFAULT_DRINKS]);
+    }
+  }
+
+  function renderChips(){
+    chipsEl.innerHTML = '';
+    drinks.forEach((name, i) => {
+      const chip = document.createElement('span');
+      chip.className = 'chip';
+      const label = document.createElement('span');
+      label.textContent = name;
+      const rm = document.createElement('button');
+      rm.textContent = '×';
+      rm.setAttribute('aria-label', `移除 ${name}`);
+      rm.addEventListener('click', () => {
+        if(drinks.length <= 2){
+          alert('至少要留 2 個選項才能轉喔');
+          return;
+        }
+        const next = drinks.slice();
+        next.splice(i,1);
+        commitDrinks(next);
+      });
+      chip.appendChild(label);
+      chip.appendChild(rm);
+      chipsEl.appendChild(chip);
+    });
+  }
+
+  function drawWheel(){
+    const size = canvas.width;
+    const cx = size/2, cy = size/2;
+    const radius = size/2 - 6;
+    const n = drinks.length;
+    const segAngle = (Math.PI*2)/n;
+
+    ctx.clearRect(0,0,size,size);
+
+    for(let i=0;i<n;i++){
+      const start = i*segAngle;
+      const end = start+segAngle;
+      const color = PALETTE[i % PALETTE.length];
+
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,radius,start,end);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = "rgba(250,243,231,0.55)";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+
+      const mid = start + segAngle/2;
+      let fontSize = n > 12 ? 18 : n > 8 ? 22 : 26;
+      const label = drinks[i];
+
+      ctx.save();
+      ctx.translate(cx,cy);
+      ctx.rotate(mid);
+
+      const midDeg = (mid*180/Math.PI) % 360;
+      const flipped = midDeg > 90 && midDeg < 270;
+
+      ctx.translate(radius*0.62, 0);
+      ctx.rotate(flipped ? Math.PI/2 + Math.PI : Math.PI/2);
+
+      ctx.fillStyle = "#FAF3E7";
+      ctx.font = `700 ${fontSize}px 'Noto Sans TC', sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.shadowColor = "rgba(0,0,0,0.35)";
+      ctx.shadowBlur = 4;
+
+      const maxWidth = radius*0.95;
+      while(ctx.measureText(label).width > maxWidth && fontSize > 10){
+        fontSize -= 1;
+        ctx.font = `700 ${fontSize}px 'Noto Sans TC', sans-serif`;
+      }
+      ctx.fillText(label, 0, 0);
+      ctx.restore();
+    }
+  }
+
+  function pickIndex(){
+    return Math.floor(Math.random()*drinks.length);
+  }
+
+  function spin(){
+    if(spinning || drinks.length === 0) return;
+    spinning = true;
+    spinBtn.disabled = true;
+    resultBox.classList.remove('show');
+
+    const n = drinks.length;
+    const segAngleDeg = 360/n;
+    const chosenIndex = pickIndex();
+    const midAngleDeg = chosenIndex*segAngleDeg + segAngleDeg/2;
+
+    const jitter = (Math.random()-0.5) * (segAngleDeg*0.6);
+    const targetMid = midAngleDeg + jitter;
+
+    let target = 270 - targetMid;
+    target = ((target % 360)+360)%360;
+
+    const spins = 5 + Math.floor(Math.random()*2);
+    let finalRotation = (currentRotation - (currentRotation % 360)) + spins*360 + target;
+    while(finalRotation <= currentRotation + 360*3){
+      finalRotation += 360;
+    }
+
+    canvas.style.transition = 'transform 4.4s cubic-bezier(0.13,0.7,0.1,1)';
+    canvas.style.transform = `rotate(${finalRotation}deg)`;
+    currentRotation = finalRotation;
+
+    const handleEnd = () => {
+      canvas.removeEventListener('transitionend', handleEnd);
+      spinning = false;
+      spinBtn.disabled = false;
+      drinkNameEl.textContent = drinks[chosenIndex];
+      resultBox.classList.add('show');
+
+      if(pendingRemoteDrinks){
+        const next = pendingRemoteDrinks;
+        pendingRemoteDrinks = null;
+        renderDrinks(next);
+      }
+    };
+    canvas.addEventListener('transitionend', handleEnd);
+  }
+
+  function applyList(){
+    const lines = listInput.value
+      .split('\n')
+      .map(s => s.trim())
+      .filter(Boolean);
+    commitDrinks(lines);
+  }
+
+  function addTag(){
+    const val = tagInput.value.trim();
+    if(!val) return;
+    if(drinks.includes(val)){
+      tagInput.value = '';
+      return;
+    }
+    commitDrinks([...drinks, val]);
+    tagInput.value = '';
+    tagInput.focus();
+  }
+
+  function openInUberEats(){
+    const name = drinkNameEl.textContent;
+    if(!name || name === '—') return;
+    const url = 'https://www.ubereats.com/search?q=' + encodeURIComponent(name);
+    window.open(url, '_blank', 'noopener');
+  }
+  resultBox.addEventListener('click', openInUberEats);
+  resultBox.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      openInUberEats();
+    }
+  });
+
+  spinBtn.addEventListener('click', spin);
+  applyBtn.addEventListener('click', applyList);
+  tagAddBtn.addEventListener('click', addTag);
+  tagInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      addTag();
+    }
+  });
+  resetBtn.addEventListener('click', () => {
+    commitDrinks([...DEFAULT_DRINKS]);
+  });
+
+  syncTextarea();
+  renderChips();
+  drawWheel();
+  initFirebase();
+</script>
+</body>
+</html>
